@@ -45,11 +45,6 @@
             font-size: 1.3rem;
             font-weight: 600;
         }
-        .chat-header p {
-            margin: 0;
-            font-size: 0.7rem;
-            opacity: 0.8;
-        }
         .status {
             margin-left: auto;
             font-size: 0.7rem;
@@ -71,9 +66,10 @@
             padding: 0.6rem 1rem;
             border-radius: 1rem;
             animation: fadeIn 0.3s ease;
+            position: relative;
         }
         .message-sent {
-            background: #7c3aed;
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
             align-self: flex-end;
             border-bottom-right-radius: 0.2rem;
         }
@@ -81,11 +77,31 @@
             background: #1e293b;
             align-self: flex-start;
             border-bottom-left-radius: 0.2rem;
+            border-left: 3px solid #a855f7;
+        }
+        .message-sender {
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            opacity: 0.8;
+        }
+        .message-sent .message-sender {
+            text-align: right;
+            color: #e9d5ff;
+        }
+        .message-received .message-sender {
+            color: #a855f7;
+        }
+        .message-content {
+            word-wrap: break-word;
         }
         .message-time {
             font-size: 0.6rem;
             opacity: 0.6;
             margin-top: 0.2rem;
+        }
+        .message-sent .message-time {
+            text-align: right;
         }
         .input-area {
             padding: 1.2rem;
@@ -138,9 +154,25 @@
             padding: 0.3rem;
             background: #1e293b;
             color: #94a3b8;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
         }
         .connected {
             color: #4ade80;
+        }
+        .disconnected {
+            color: #ef4444;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .friend-status {
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 1px solid #334155;
         }
     </style>
 </head>
@@ -151,7 +183,6 @@
             <div class="avatar">👩</div>
             <div>
                 <h2>Alice</h2>
-                <p>Messagerie post-quantique</p>
             </div>
             <div class="status" id="statusBadge">🔒 Sécurisé</div>
         </div>
@@ -169,7 +200,8 @@
         </div>
         
         <div class="connection-status" id="connectionStatus">
-            🔴 Connexion en cours...
+            <span class="status-badge">🔴 Moï: Déconnecté</span>
+            <span class="status-badge friend-status" id="bobStatus">⚫ Bob: Inconnu</span>
         </div>
     </div>
 </div>
@@ -260,11 +292,44 @@
     let sendBtn = document.getElementById('sendBtn');
     let messageInput = document.getElementById('messageInput');
     let messagesArea = document.getElementById('messagesArea');
+    let bobConnected = false;
+    
+    // Mise à jour du statut de Bob
+    function updateBobStatus(connected) {
+        bobConnected = connected;
+        const bobStatusSpan = document.getElementById('bobStatus');
+        if (connected) {
+            bobStatusSpan.innerHTML = '🟢 Bob: Connecté';
+            bobStatusSpan.style.color = '#4ade80';
+        } else {
+            bobStatusSpan.innerHTML = '🔴 Bob: Déconnecté';
+            bobStatusSpan.style.color = '#ef4444';
+        }
+    }
+    
+    // Mise à jour du statut personnel
+    function updateMyStatus(connected) {
+        const myStatusSpan = document.querySelector('.connection-status .status-badge:first-child');
+        if (connected) {
+            myStatusSpan.innerHTML = '🟢 Moi: Connecté';
+            myStatusSpan.style.color = '#4ade80';
+        } else {
+            myStatusSpan.innerHTML = '🔴 Moi: Déconnecté';
+            myStatusSpan.style.color = '#ef4444';
+        }
+    }
     
     // Envoi de la clé publique
     function sendPublicKey() {
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({ type: 'public_key', data: aliceKeys.pk }));
+        }
+    }
+    
+    // Envoi d'un ping de statut
+    function sendStatusPing() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'status_ping' }));
         }
     }
     
@@ -275,12 +340,17 @@
     }
     
     // Ajout d'un message dans l'interface
-    function addMessage(text, isSent, timestamp) {
+    function addMessage(text, isSent, timestamp, sender = null) {
         const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
+        
+        const senderName = isSent ? 'Moi (Alice)' : (sender || 'Bob');
+        const senderIcon = isSent ? '👩' : '👨';
+        
         messageDiv.innerHTML = `
-            <div>${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+            <div class="message-sender">${senderIcon} ${senderName}</div>
+            <div class="message-content">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
             <div class="message-time">${time}</div>
         `;
         messagesArea.appendChild(messageDiv);
@@ -296,11 +366,11 @@
         const msg = messageInput.value.trim();
         if (!msg) return;
         if (!bobPublicPk) {
-            addMessage("❌ En attente de la clé de Bob...", false, new Date().toISOString());
+            addMessage("❌ En attente de la clé de Bob...", false, new Date().toISOString(), "Système");
             return;
         }
         if (!ws || ws.readyState !== WebSocket.OPEN) {
-            addMessage("❌ Déconnecté du serveur", false, new Date().toISOString());
+            addMessage("❌ Déconnecté du serveur", false, new Date().toISOString(), "Système");
             return;
         }
         
@@ -340,13 +410,17 @@
         ws = new WebSocket(wsUrl);
         
         ws.onopen = () => {
-            document.getElementById('connectionStatus').innerHTML = '🟢 Connecté - Canal sécurisé PQC';
-            document.getElementById('connectionStatus').classList.add('connected');
+            updateMyStatus(true);
             sendPublicKey();
+            
+            // Envoyer un ping de statut périodiquement
+            setInterval(sendStatusPing, 30000);
             
             // Message d'accueil
             if (messagesArea.children.length === 1 && messagesArea.children[0].innerText.includes('En attente')) {
                 messagesArea.innerHTML = '';
+                addMessage("✨ Connexion établie avec le serveur", false, new Date().toISOString(), "Système");
+                addMessage("🔐 En attente de la clé de Bob...", false, new Date().toISOString(), "Système");
             }
         };
         
@@ -359,6 +433,8 @@
                 statusDiv.innerHTML = '🔐 Clé Bob reçue';
                 setTimeout(() => { statusDiv.innerHTML = '🔒 Sécurisé'; }, 2000);
                 console.log('Clé publique de Bob reçue');
+                addMessage("🔐 Clé sécurisée reçue de Bob - Communication chiffrée établie", false, new Date().toISOString(), "Système");
+                updateBobStatus(true);
             }
             else if (msg.type === 'message' && msg.from === 'bob') {
                 const decrypted = decrypt(msg.data.ciphertext, aliceKeys.sk);
@@ -368,16 +444,33 @@
             else if (msg.type === 'connected') {
                 console.log('Connecté au serveur');
             }
+            else if (msg.type === 'status_pong' && msg.from === 'bob') {
+                updateBobStatus(true);
+            }
+            else if (msg.type === 'friend_connected' && msg.friend === 'bob') {
+                updateBobStatus(true);
+                addMessage("👨 Bob est maintenant connecté", false, new Date().toISOString(), "Système");
+            }
+            else if (msg.type === 'friend_disconnected' && msg.friend === 'bob') {
+                updateBobStatus(false);
+                bobPublicPk = null;
+                addMessage("⚠️ Bob s'est déconnecté - En attente de reconnexion...", false, new Date().toISOString(), "Système");
+                const statusDiv = document.getElementById('statusBadge');
+                statusDiv.innerHTML = '⏳ En attente';
+            }
         };
         
         ws.onerror = (error) => {
             console.error('Erreur WebSocket:', error);
-            document.getElementById('connectionStatus').innerHTML = '🔴 Erreur de connexion';
+            updateMyStatus(false);
         };
         
         ws.onclose = () => {
-            document.getElementById('connectionStatus').innerHTML = '🔴 Déconnecté - Reconnexion...';
-            document.getElementById('connectionStatus').classList.remove('connected');
+            updateMyStatus(false);
+            updateBobStatus(false);
+            bobPublicPk = null;
+            const statusDiv = document.getElementById('statusBadge');
+            statusDiv.innerHTML = '🔒 Déconnecté';
             setTimeout(connectWebSocket, 3000);
         };
     }
