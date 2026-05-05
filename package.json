@@ -1,0 +1,16 @@
+{
+    "name": "pqc-messaging",
+    "version": "1.0.0",
+    "description": "Messagerie post-quantique avec LWE",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "dependencies": {
+        "ws": "^8.20.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    }
+}

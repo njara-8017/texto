@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👩 ALICE - Messagerie Sécurisée</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #1a0835 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .chat-card {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            border: 1px solid #a855f7;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .chat-header {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            padding: 1.2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+        .avatar {
+            font-size: 2rem;
+        }
+        .chat-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+        .status {
+            margin-left: auto;
+            font-size: 0.7rem;
+            background: #05966933;
+            padding: 0.3rem 0.8rem;
+            border-radius: 2rem;
+        }
+        .messages-area {
+            height: 400px;
+            overflow-y: auto;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            background: #0f172a80;
+        }
+        .message {
+            max-width: 70%;
+            padding: 0.6rem 1rem;
+            border-radius: 1rem;
+            animation: fadeIn 0.3s ease;
+            position: relative;
+        }
+        .message-sent {
+            background: linear-gradient(135deg, #7c3aed, #a855f7);
+            align-self: flex-end;
+            border-bottom-right-radius: 0.2rem;
+        }
+        .message-received {
+            background: #1e293b;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.2rem;
+            border-left: 3px solid #a855f7;
+        }
+        .message-sender {
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            opacity: 0.8;
+        }
+        .message-sent .message-sender {
+            text-align: right;
+            color: #e9d5ff;
+        }
+        .message-received .message-sender {
+            color: #a855f7;
+        }
+        .message-content {
+            word-wrap: break-word;
+        }
+        .message-time {
+            font-size: 0.6rem;
+            opacity: 0.6;
+            margin-top: 0.2rem;
+        }
+        .message-sent .message-time {
+            text-align: right;
+        }
+        .input-area {
+            padding: 1.2rem;
+            background: #0f172a;
+            border-top: 1px solid #334155;
+            display: flex;
+            gap: 0.8rem;
+        }
+        .input-area input {
+            flex: 1;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 2rem;
+            padding: 0.8rem 1.2rem;
+            color: #e2e8f0;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+        .input-area input:focus {
+            border-color: #a855f7;
+            box-shadow: 0 0 0 2px #a855f720;
+        }
+        .input-area button {
+            background: #a855f7;
+            border: none;
+            border-radius: 2rem;
+            padding: 0.8rem 1.8rem;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.9rem;
+        }
+        .input-area button:hover {
+            background: #7c3aed;
+            transform: scale(1.02);
+        }
+        .input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .connection-status {
+            text-align: center;
+            font-size: 0.7rem;
+            padding: 0.3rem;
+            background: #1e293b;
+            color: #94a3b8;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .connected {
+            color: #4ade80;
+        }
+        .disconnected {
+            color: #ef4444;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .friend-status {
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 1px solid #334155;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="chat-card">
+        <div class="chat-header">
+            <div class="avatar">👩</div>
+            <div>
+                <h2>Alice</h2>
+            </div>
+            <div class="status" id="statusBadge">🔒 Sécurisé</div>
+        </div>
+        
+        <div class="messages-area" id="messagesArea">
+            <div style="text-align: center; color: #64748b; padding: 2rem;">
+                💬 Clé PQC générée<br>
+                En attente de connexion...
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Message pour Bob..." autocomplete="off">
+            <button id="sendBtn">Envoyer</button>
+        </div>
+        
+        <div class="connection-status" id="connectionStatus">
+            <span class="status-badge">🔴 Moï: Déconnecté</span>
+            <span class="status-badge friend-status" id="bobStatus">⚫ Bob: Inconnu</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== PQC CORE ====================
+    const n = 16, q = 3329, HALF_Q = Math.floor(q / 2);
+    
+    function mod(x) { let r = x % q; if (r < 0) r += q; return r; }
+    function dot(a, b) { let s = 0; for (let i = 0; i < n; i++) s += a[i] * b[i]; return s; }
+    function dotMod(a, b) { return mod(dot(a, b)); }
+    function randVec() { return Array.from({ length: n }, () => Math.floor(Math.random() * q)); }
+    function randMat() { return Array.from({ length: n }, () => randVec()); }
+    
+    function transposeMul(A, r) {
+        const res = new Array(n);
+        for (let i = 0; i < n; i++) {
+            let s = 0;
+            for (let j = 0; j < n; j++) s += A[j][i] * r[j];
+            res[i] = mod(s);
+        }
+        return res;
+    }
+    
+    function textToBits(t) {
+        const b = [];
+        for (let i = 0; i < t.length; i++) {
+            const c = t.charCodeAt(i);
+            for (let bi = 7; bi >= 0; bi--) b.push((c >> bi) & 1);
+        }
+        return b;
+    }
+    
+    function bitsToText(b) {
+        let r = "";
+        for (let i = 0; i < b.length; i += 8) {
+            let byte = 0;
+            for (let j = 0; j < 8 && i + j < b.length; j++) byte = (byte << 1) | b[i + j];
+            r += String.fromCharCode(byte);
+        }
+        return r;
+    }
+    
+    function generateKeypair() {
+        const sk = randVec();
+        const A = randMat();
+        const b = new Array(n);
+        for (let i = 0; i < n; i++) b[i] = mod(dot(A[i], sk));
+        return { sk: sk, pk: { A: A, b: b } };
+    }
+    
+    function encrypt(message, pk) {
+        const bits = textToBits(message);
+        const uVecs = [], vVals = [];
+        for (let i = 0; i < bits.length; i++) {
+            const bit = bits[i];
+            const r = Array.from({ length: n }, () => Math.random() < 0.5 ? 0 : 1);
+            const u = transposeMul(pk.A, r);
+            const bDotR = dotMod(pk.b, r);
+            const encoded = bit === 1 ? HALF_Q : 0;
+            const v = mod(bDotR + encoded);
+            uVecs.push(u);
+            vVals.push(v);
+        }
+        return { ciphertext: { u: uVecs, v: vVals } };
+    }
+    
+    function decrypt(ciphertext, sk) {
+        const { u: uVecs, v: vVals } = ciphertext;
+        const decBits = [];
+        for (let i = 0; i < uVecs.length; i++) {
+            const u = uVecs[i], v = vVals[i];
+            let sDotU = 0;
+            for (let j = 0; j < n; j++) sDotU += sk[j] * u[j];
+            sDotU = mod(sDotU);
+            const mp = mod(v - sDotU);
+            const distZero = Math.min(mp, q - mp);
+            const distHalf = Math.abs(mp - HALF_Q);
+            decBits.push((distHalf < distZero) ? 1 : 0);
+        }
+        return bitsToText(decBits);
+    }
+    
+    // ============ ÉTAT ============
+    let aliceKeys = generateKeypair();
+    let bobPublicPk = null;
+    let ws = null;
+    let sendBtn = document.getElementById('sendBtn');
+    let messageInput = document.getElementById('messageInput');
+    let messagesArea = document.getElementById('messagesArea');
+    let bobConnected = false;
+    
+    // Mise à jour du statut de Bob
+    function updateBobStatus(connected) {
+        bobConnected = connected;
+        const bobStatusSpan = document.getElementById('bobStatus');
+        if (connected) {
+            bobStatusSpan.innerHTML = '🟢 Bob: Connecté';
+            bobStatusSpan.style.color = '#4ade80';
+        } else {
+            bobStatusSpan.innerHTML = '🔴 Bob: Déconnecté';
+            bobStatusSpan.style.color = '#ef4444';
+        }
+    }
+    
+    // Mise à jour du statut personnel
+    function updateMyStatus(connected) {
+        const myStatusSpan = document.querySelector('.connection-status .status-badge:first-child');
+        if (connected) {
+            myStatusSpan.innerHTML = '🟢 Moi: Connecté';
+            myStatusSpan.style.color = '#4ade80';
+        } else {
+            myStatusSpan.innerHTML = '🔴 Moi: Déconnecté';
+            myStatusSpan.style.color = '#ef4444';
+        }
+    }
+    
+    // Envoi de la clé publique
+    function sendPublicKey() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'public_key', data: aliceKeys.pk }));
+        }
+    }
+    
+    // Envoi d'un ping de statut
+    function sendStatusPing() {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'status_ping' }));
+        }
+    }
+    
+    // Régénération des clés après chaque envoi
+    function regenerateKeys() {
+        aliceKeys = generateKeypair();
+        sendPublicKey();
+    }
+    
+    // Ajout d'un message dans l'interface
+    function addMessage(text, isSent, timestamp, sender = null) {
+        const time = new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
+        
+        const senderName = isSent ? 'Moi (Alice)' : (sender || 'Bob');
+        const senderIcon = isSent ? '👩' : '👨';
+        
+        messageDiv.innerHTML = `
+            <div class="message-sender">${senderIcon} ${senderName}</div>
+            <div class="message-content">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+            <div class="message-time">${time}</div>
+        `;
+        messagesArea.appendChild(messageDiv);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+        
+        // Retirer le message d'attente si présent
+        const waitingMsg = messagesArea.querySelector('.waiting-msg');
+        if (waitingMsg) waitingMsg.remove();
+    }
+    
+    // Envoi de message
+    async function sendMessage() {
+        const msg = messageInput.value.trim();
+        if (!msg) return;
+        if (!bobPublicPk) {
+            addMessage("❌ En attente de la clé de Bob...", false, new Date().toISOString(), "Système");
+            return;
+        }
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            addMessage("❌ Déconnecté du serveur", false, new Date().toISOString(), "Système");
+            return;
+        }
+        
+        // Chiffrer le message
+        const { ciphertext } = encrypt(msg, bobPublicPk);
+        
+        // Envoyer
+        ws.send(JSON.stringify({
+            type: 'message',
+            target: 'bob',
+            data: { ciphertext: ciphertext }
+        }));
+        
+        // Afficher le message envoyé
+        addMessage(msg, true, new Date().toISOString());
+        
+        // Vider l'input
+        messageInput.value = '';
+        
+        // 🔑 RÉGÉNÉRER UNE NOUVELLE CLÉ APRÈS ENVOI
+        regenerateKeys();
+    }
+    
+    // ============ WEBSOCKET ============
+    function connectWebSocket() {
+        // Utiliser l'URL dynamique pour Render.com
+        let wsUrl;
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            wsUrl = 'ws://localhost:3001/alice';
+        } else {
+            // En production sur Render.com
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            wsUrl = `${protocol}//${window.location.host}/alice`;
+        }
+        
+        console.log('Connexion WebSocket à:', wsUrl);
+        ws = new WebSocket(wsUrl);
+        
+        ws.onopen = () => {
+            updateMyStatus(true);
+            sendPublicKey();
+            
+            // Envoyer un ping de statut périodiquement
+            setInterval(sendStatusPing, 30000);
+            
+            // Message d'accueil
+            if (messagesArea.children.length === 1 && messagesArea.children[0].innerText.includes('En attente')) {
+                messagesArea.innerHTML = '';
+                addMessage("✨ Connexion établie avec le serveur", false, new Date().toISOString(), "Système");
+                addMessage("🔐 En attente de la clé de Bob...", false, new Date().toISOString(), "Système");
+            }
+        };
+        
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            
+            if (msg.type === 'public_key' && msg.from === 'bob') {
+                bobPublicPk = msg.data;
+                const statusDiv = document.getElementById('statusBadge');
+                statusDiv.innerHTML = '🔐 Clé Bob reçue';
+                setTimeout(() => { statusDiv.innerHTML = '🔒 Sécurisé'; }, 2000);
+                console.log('Clé publique de Bob reçue');
+                addMessage("🔐 Clé sécurisée reçue de Bob - Communication chiffrée établie", false, new Date().toISOString(), "Système");
+                updateBobStatus(true);
+            }
+            else if (msg.type === 'message' && msg.from === 'bob') {
+                const decrypted = decrypt(msg.data.ciphertext, aliceKeys.sk);
+                addMessage(decrypted, false, msg.timestamp);
+                console.log('Message déchiffré de Bob');
+            }
+            else if (msg.type === 'connected') {
+                console.log('Connecté au serveur');
+            }
+            else if (msg.type === 'status_pong' && msg.from === 'bob') {
+                updateBobStatus(true);
+            }
+            else if (msg.type === 'friend_connected' && msg.friend === 'bob') {
+                updateBobStatus(true);
+                addMessage("👨 Bob est maintenant connecté", false, new Date().toISOString(), "Système");
+            }
+            else if (msg.type === 'friend_disconnected' && msg.friend === 'bob') {
+                updateBobStatus(false);
+                bobPublicPk = null;
+                addMessage("⚠️ Bob s'est déconnecté - En attente de reconnexion...", false, new Date().toISOString(), "Système");
+                const statusDiv = document.getElementById('statusBadge');
+                statusDiv.innerHTML = '⏳ En attente';
+            }
+        };
+        
+        ws.onerror = (error) => {
+            console.error('Erreur WebSocket:', error);
+            updateMyStatus(false);
+        };
+        
+        ws.onclose = () => {
+            updateMyStatus(false);
+            updateBobStatus(false);
+            bobPublicPk = null;
+            const statusDiv = document.getElementById('statusBadge');
+            statusDiv.innerHTML = '🔒 Déconnecté';
+            setTimeout(connectWebSocket, 3000);
+        };
+    }
+    
+    // Événements
+    sendBtn.onclick = sendMessage;
+    messageInput.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+    
+    // Démarrage
+    connectWebSocket();
+</script>
+</body>
+</html>
